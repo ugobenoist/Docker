@@ -1,5 +1,5 @@
 services:
-  Adminer:
+  adminer:
     build: ./app
     ports:
       - "8080:8080"
@@ -31,5 +31,3 @@ services:
       - donnees:/var/lib/postgresql
 volumes:
   donnees:
-      
-
