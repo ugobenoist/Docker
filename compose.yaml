@@ -1,13 +1,8 @@
 services:
   adminer:
-    build: ./app
+    image: adminer
     ports:
       - "8080:8080"
-    environment:
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDB: ${POSTGRES_DB}
-      PGHOST: ${POSTGRES_HOST}
     depends_on:
       - db
   api:
