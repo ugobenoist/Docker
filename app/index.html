@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Champions</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --fond: #0b1020;
+      --carte: #151b2e;
+      --bord: #2a3454;
+      --texte: #e8eefc;
+      --muted: #9aa6c4;
+      --or: #c8aa6e;
+      --or-fonce: #8c6b32;
+      --erreur: #ff8b8b;
+      --ok: #8fdbb0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #243056, transparent 55%),
+        var(--fond);
+      color: var(--texte);
+    }
+
+    main {
+      width: min(880px, calc(100% - 32px));
+      margin: 40px auto 64px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.4rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    h1 span { color: var(--or); }
+
+    #sante {
+      margin: 0;
+      color: var(--muted);
+      font-family: "Segoe UI", sans-serif;
+      font-size: 0.9rem;
+    }
+
+    form, .liste {
+      background: var(--carte);
+      border: 1px solid var(--bord);
+      border-radius: 16px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr auto;
+      gap: 12px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input, select, button {
+      font: inherit;
+      border-radius: 10px;
+    }
+
+    input, select {
+      font-family: "Segoe UI", sans-serif;
+      color: var(--texte);
+      background: #0e1426;
+      border: 1px solid var(--bord);
+      padding: 10px 12px;
+    }
+
+    button {
+      align-self: end;
+      border: 0;
+      padding: 11px 18px;
+      background: linear-gradient(180deg, var(--or), var(--or-fonce));
+      color: #1a1206;
+      font-family: "Segoe UI", sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: 0.6; cursor: wait; }
+
+    #message {
+      min-height: 1.2em;
+      margin: 0 0 14px;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--erreur);
+    }
+
+    #message.ok { color: var(--ok); }
+
+    .liste { padding: 8px; }
+
+    .vide {
+      margin: 0;
+      padding: 28px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    article {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--bord);
+    }
+
+    article:last-child { border-bottom: 0; }
+
+    .nom {
+      font-size: 1.35rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    @media (max-width: 760px) {
+      form, article { grid-template-columns: 1fr; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Champions <span>de la Faille</span></h1>
+      <p id="sante">Base : …</p>
+    </header>
+
+    <form id="ajout">
+      <label>Nom
+        <input name="nom" required maxlength="80" placeholder="Ahri" autocomplete="off">
+      </label>
+      <label>Lane
+        <select name="lane" required>
+          <option value="Top">Top</option>
+          <option value="Jungle">Jungle</option>
+          <option value="Mid" selected>Mid</option>
+          <option value="ADC">ADC</option>
+          <option value="Support">Support</option>
+        </select>
+      </label>
+      <label>Région
+        <input name="region" required maxlength="80" placeholder="Ionia" autocomplete="off">
+      </label>
+      <button type="submit">Ajouter</button>
+    </form>
+
+    <p id="message"></p>
+    <section class="liste" id="liste" aria-live="polite"></section>
+  </main>
+
+  <script>
+    const liste = document.querySelector("#liste");
+    const message = document.querySelector("#message");
+    const form = document.querySelector("#ajout");
+    const sante = document.querySelector("#sante");
+
+    function afficherMessage(texte, ok) {
+      message.textContent = texte;
+      message.className = ok ? "ok" : "";
+    }
+
+    function carte(champion) {
+      const article = document.createElement("article");
+      const nom = document.createElement("div");
+      const lane = document.createElement("div");
+      const region = document.createElement("div");
+      nom.className = "nom";
+      lane.className = "meta";
+      region.className = "meta";
+      nom.textContent = champion.nom;
+      lane.textContent = champion.lane;
+      region.textContent = champion.region;
+      article.append(nom, lane, region);
+      return article;
+    }
+
+    async function charger() {
+      const reponse = await fetch("/api/champions");
+      const data = await reponse.json();
+      liste.replaceChildren();
+      if (!reponse.ok) {
+        afficherMessage(data.erreur || "Impossible de lire les champions");
+        return;
+      }
+      afficherMessage("");
+      if (data.length === 0) {
+        const vide = document.createElement("p");
+        vide.className = "vide";
+        vide.textContent = "Aucun champion pour l’instant.";
+        liste.append(vide);
+        return;
+      }
+      data.forEach((champion) => liste.append(carte(champion)));
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const bouton = form.querySelector("button");
+      const corps = {
+        nom: form.nom.value.trim(),
+        lane: form.lane.value,
+        region: form.region.value.trim(),
+      };
+      bouton.disabled = true;
+      try {
+        const reponse = await fetch("/api/champions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(corps),
+        });
+        const data = await reponse.json();
+        if (!reponse.ok) {
+          afficherMessage(data.erreur || "Ajout impossible");
+          return;
+        }
+        form.nom.value = "";
+        form.region.value = "";
+        afficherMessage(data.nom + " ajouté", true);
+        await charger();
+      } catch (err) {
+        afficherMessage("API injoignable");
+      } finally {
+        bouton.disabled = false;
+      }
+    });
+
+    fetch("/api/sante")
+      .then((reponse) => reponse.json())
+      .then((data) => {
+        sante.textContent = "Base : " + data.base;
+      })
+      .catch(() => {
+        sante.textContent = "Base : injoignable";
+      });
+
+    charger().catch(() => afficherMessage("API injoignable"));
+  </script>
+</body>
+</html>

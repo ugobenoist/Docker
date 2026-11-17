@@ -5,6 +5,13 @@ const { Pool } = require("pg");
 
 const PORT = process.env.PORT || 3000;
 
+const pool = new Pool({
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDB,
+  host: process.env.PGHOST,
+});
+
 pool.on("error", (err) => {
   console.error("Base : connexion perdue (" + err.message + ")");
   baseConnectee = false;
@@ -45,7 +52,7 @@ const app = express();
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.get("/api/sante", (req, res) => {
@@ -62,7 +69,7 @@ app.get("/api/champions", async (req, res) => {
   }
   try {
     const { rows } = await pool.query(
-      "SELECT id, nom, lane, region  FROM reservations ORDER BY nom, lane, region"
+      "SELECT id, nom, lane, region FROM champions ORDER BY nom"
     );
     res.json(rows);
   } catch (err) {
@@ -70,7 +77,7 @@ app.get("/api/champions", async (req, res) => {
   }
 });
 
-pp.post("/api/champions", async (req, res) => {
+app.post("/api/champions", async (req, res) => {
   if (!baseConnectee) {
     return res.status(503).json({ erreur: "base non connectée" });
   }
